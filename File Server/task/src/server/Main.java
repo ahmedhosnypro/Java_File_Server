@@ -1,8 +1,12 @@
 package server;
 
+import server.file.FileManager;
+import server.http.IHttpServer;
+
 public class Main {
 
     public static void main(String[] args) {
-        new ServerStream();
+        FileManager.getInstance().init();
+        IHttpServer.startHttpServer();
     }
 }

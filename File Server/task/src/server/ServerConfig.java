@@ -34,7 +34,7 @@ public class ServerConfig {
         }
     }
 
-    public static String getAddress() {
+    public static String getHostName() {
         initialize();
         return instance.address;
     }

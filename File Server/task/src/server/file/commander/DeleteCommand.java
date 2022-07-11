@@ -2,14 +2,13 @@ package server.file.commander;
 
 import server.file.FileManager;
 
-public class DeleteCommand extends Command {
-    public boolean execute(String fileName) {
+public class DeleteCommand implements Command {
+    public String execute(String... args) {
+        String fileName = args[0];
         if (FileManager.getInstance().deleteFile(fileName)) {
-            System.out.println(THE_FILE + fileName + " was deleted\n");
-            return true;
+            return "the file was successfully deleted!";
         } else {
-            System.out.println(THE_FILE + fileName + " not found\n");
-            return false;
+            return "the file was not found!";
         }
     }
 }

@@ -238,6 +238,277 @@ files:
     }
 
   learner_created: false
+- name: src/server/file/commander/Command.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    public abstract class Command {
+        final String THE_FILE = "The file ";
+        final String THE_FILE2 = "the file ";
+
+        abstract boolean execute(String fileName);
+    }
+  learner_created: true
+- name: src/server/file/commander/GetCommand.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    import server.file.FileManager;
+
+    public class GetCommand extends Command {
+        @Override
+        boolean execute(String fileName) {
+            if (FileManager.getInstance().isExist(fileName)) {
+                System.out.println(THE_FILE + fileName + " was sent\n");
+                return true;
+            } else {
+                System.out.println(THE_FILE + fileName + " not found\n");
+                return false;
+            }
+        }
+    }
+  learner_created: true
+- name: src/server/file/commander/DeleteCommand.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    import server.file.FileManager;
+
+    public class DeleteCommand extends Command {
+        public boolean execute(String fileName) {
+            if (FileManager.getInstance().deleteFile(fileName)) {
+                System.out.println(THE_FILE + fileName + " was deleted\n");
+                return true;
+            } else {
+                System.out.println(THE_FILE + fileName + " not found\n");
+                return false;
+            }
+        }
+    }
+  learner_created: true
+- name: src/server/file/commander/ExitCommand.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    import server.file.FileManager;
+
+    public class ExitCommand extends Command {
+
+        @Override
+        boolean execute(String fileName) {
+            return FileManager.getInstance().deleteAllFiles();
+        }
+    }
+  learner_created: true
+- name: src/server/FileServer.java
+  visible: true
+  text: |-
+    package server;
+
+    import server.file.commander.Controller;
+
+    import java.util.Scanner;
+
+    public class FileServer {
+        private static final Controller controller = new Controller();
+        private static final Scanner scanner = new Scanner(System.in);
+
+        private FileServer() {
+        }
+
+        public static void start() {
+            boolean isRunning = true;
+            while (isRunning) {
+                isRunning = runCommand();
+            }
+
+        }
+
+        public static boolean runCommand() {
+            var commandArgs = scanner.nextLine().trim().split(" ");
+            switch (commandArgs[0]) {
+                case "add", "get", "delete" -> {
+                    if (commandArgs.length < 2) {
+                        System.out.println("Invalid number of arguments");
+                        return true;
+                    }
+                }
+                default -> {
+                    if (commandArgs.length > 1) {
+                        System.out.println("Invalid number of arguments");
+                        return true;
+                    }
+                }
+            }
+            controller.setCommand(commandArgs[0]);
+            if (commandArgs[0].equals("exit")) {
+                controller.executeCommand(commandArgs[0]);
+                return false;
+            }
+            controller.executeCommand(commandArgs[1]);
+            return true;
+        }
+    }
+  learner_created: true
+- name: src/server/file/FileManager.java
+  visible: true
+  text: |
+    package server.file;
+
+    import java.io.File;
+    import java.nio.file.Files;
+    import java.util.List;
+
+    public class FileManager {
+        private static FileManager instance = new FileManager();
+        private static final List<String> fileNames = List.of("file1", "file2", "file3",
+                "file4", "file5", "file6", "file7",
+                "file8", "file9", "file10");
+
+        private FileManager() {
+        }
+
+        public static FileManager getInstance() {
+            if (instance == null) {
+                instance = new FileManager();
+            }
+            return instance;
+        }
+
+        private boolean isWrongFileName(String fileName) {
+            return !fileName.matches("file[1-9]|file[1-9]0");
+        }
+
+        public boolean isExist(String fileName) {
+            if (isWrongFileName(fileName)) {
+                return false;
+            }
+            File file = new File(fileName);
+            return file.exists();
+        }
+
+        public boolean deleteFile(String fileName) {
+            if (isWrongFileName(fileName)) {
+                return false;
+            }
+            File file = new File(fileName);
+            if (file.exists()) {
+                try {
+                    Files.delete(file.toPath());
+                    return true;
+                } catch (Exception x) {
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        public boolean createFile(String fileName) {
+            if (isWrongFileName(fileName)) {
+                return false;
+            }
+            File file = new File(fileName);
+            if (!file.exists()) {
+                try {
+                    if (file.createNewFile()) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    System.out.println("Could not create file " + fileName);
+                }
+            }
+            return false;
+        }
+
+        public boolean deleteAllFiles() {
+            for (var file : fileNames) {
+                deleteFile(file);
+            }
+            return true;
+        }
+    }
+  learner_created: true
+- name: src/server/http/IHttpServer.java
+  visible: true
+  learner_created: true
+- name: src/server/http/RequestHandler.java
+  visible: true
+  learner_created: true
+- name: src/server/http/IHttpHandler.java
+  visible: true
+  learner_created: true
+- name: src/server/http/GetRequestHandler.java
+  visible: true
+  learner_created: true
+- name: src/server/http/PutRequestHandler.java
+  visible: true
+  learner_created: true
+- name: src/server/http/DeleteRequestHandler.java
+  visible: true
+  learner_created: true
+- name: src/server/http/ExitRequestHandler.java
+  visible: true
+  learner_created: true
+- name: src/server/http/ResponseHandler.java
+  visible: true
+  learner_created: true
+- name: src/server/file/commander/FileCommandController.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    public class Controller {
+        private Command command;
+
+        public void setCommand(String type) {
+            command = switch (type) {
+                case "add" -> new AddCommand();
+                case "get" -> new GetCommand();
+                case "delete" -> new DeleteCommand();
+                case "exit" -> new ExitCommand();
+                default -> throw new IllegalArgumentException("Unknown command");
+            };
+        }
+
+        public boolean executeCommand(String fileName) {
+            return command.execute(fileName);
+        }
+    }
+  learner_created: true
+- name: src/server/http/RequestHandlerBuilder.java
+  visible: true
+  learner_created: true
+- name: src/server/file/commander/PutCommand.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    import server.file.FileManager;
+
+    public class AddCommand extends Command {
+        public boolean execute(String fileName) {
+            if (FileManager.getInstance().createFile(fileName)) {
+                System.out.println(THE_FILE + fileName + " added successfully\n");
+                return true;
+            }
+            System.out.println("Cannot add " + THE_FILE2 + fileName + "\n");
+            return false;
+        }
+    }
+  learner_created: true
+- name: src/client/http/IHttpClient.java
+  visible: true
+  learner_created: true
+- name: src/client/CLI.java
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/learn/step/5427#comment
-status: Unchecked
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Mon, 11 Jul 2022 19:43:16 UTC
 record: -1

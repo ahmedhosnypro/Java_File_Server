@@ -1,11 +1,11 @@
 package server;
 
-import server.file.commander.Controller;
+import server.file.commander.FileCommandController;
 
 import java.util.Scanner;
 
 public class FileServer {
-    private static final Controller controller = new Controller();
+    private static final FileCommandController controller = new FileCommandController();
     private static final Scanner scanner = new Scanner(System.in);
 
     private FileServer() {

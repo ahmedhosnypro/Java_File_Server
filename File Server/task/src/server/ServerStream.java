@@ -15,7 +15,7 @@ public class ServerStream {
 
     private void start() {
         try (ServerSocket serverSocket = new ServerSocket(ServerConfig.getPort(), 50,
-                InetAddress.getByName(ServerConfig.getAddress()))) {
+                InetAddress.getByName(ServerConfig.getHostName()))) {
             try (Socket socket = serverSocket.accept();
                  DataInputStream inputStream = new DataInputStream(socket.getInputStream());
                  DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream())) {

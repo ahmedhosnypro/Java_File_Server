@@ -2,15 +2,14 @@ package server.file.commander;
 
 import server.file.FileManager;
 
-public class GetCommand extends Command {
+public class GetCommand implements Command {
     @Override
-    boolean execute(String fileName) {
-        if (FileManager.getInstance().isExist(fileName)) {
-            System.out.println(THE_FILE + fileName + " was sent\n");
-            return true;
+    public String execute(String... args) {
+        String fileName = args[0];
+        if (FileManager.isExist(fileName)) {
+            return "The content of the file is: " + FileManager.getInstance().getFileContent(fileName);
         } else {
-            System.out.println(THE_FILE + fileName + " not found\n");
-            return false;
+            return "the file was not found!";
         }
     }
 }

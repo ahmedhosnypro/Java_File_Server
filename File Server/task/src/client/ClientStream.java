@@ -15,7 +15,7 @@ public class ClientStream extends Socket {
 
 
     private ClientStream() throws IOException {
-        super(InetAddress.getByName(ServerConfig.getAddress()),
+        super(InetAddress.getByName(ServerConfig.getHostName()),
                 ServerConfig.getPort());
         System.out.println("Client started!");
         input = new DataInputStream(getInputStream());
