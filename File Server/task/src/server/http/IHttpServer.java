@@ -1,7 +1,7 @@
 package server.http;
 
 import com.sun.net.httpserver.HttpServer;
-import server.ServerConfig;
+import network.NetConfig;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -17,7 +17,7 @@ public class IHttpServer {
 
     public static void startHttpServer() {
         try {
-            server = HttpServer.create(new InetSocketAddress(ServerConfig.getHostName(), ServerConfig.getPort()), 50);
+            server = HttpServer.create(new InetSocketAddress(NetConfig.getHostName(), NetConfig.getPort()), 50);
             server.setExecutor(EXECUTOR);
             server.createContext("/", new IHttpHandler());
             server.start();

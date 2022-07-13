@@ -1,14 +1,19 @@
 package server.file.commander;
 
-import server.file.FileManager;
+import com.sun.net.httpserver.HttpExchange;
 
-public class DeleteCommand implements Command {
-    public String execute(String... args) {
-        String fileName = args[0];
-        if (FileManager.getInstance().deleteFile(fileName)) {
-            return "the file was successfully deleted!";
+public class DeleteCommand extends Command {
+    @Override
+    byte[] execute(HttpExchange httpExchange) {
+        String fileName = getFileName(httpExchange);
+        if (fileName == null) {
+            return null;
+        }
+
+        if (fileManager.deleteFile(fileName)) {
+            return "this file was deleted successfully!".getBytes();
         } else {
-            return "the file was not found!";
+            return null;
         }
     }
 }

@@ -9,9 +9,10 @@ public class CLI {
     }
 
     private static final Scanner scanner = new Scanner(System.in);
+    private static final client.cli.Controller controller = new client.cli.Controller();
 
     static void run() {
-        System.out.print("Enter action (1 - get a file, 2 - create a file, 3 - delete a file): ");
+        System.out.print("Enter action (1 - get a file, 2 - save a file, 3 - delete a file): ");
         String action = scanner.nextLine();
         if (!isValidAction(action)) {
             return;
@@ -21,18 +22,10 @@ public class CLI {
             return;
         }
 
-        System.out.print("Enter file name: ");
-        String fileName = scanner.nextLine();
-
         switch (action) {
-            case "1" -> IHttpClient.sendRequest("GET", fileName);
-            case "2" -> {
-                System.out.print("Enter file content: ");
-                String fileContent = scanner.nextLine();
-
-                IHttpClient.sendRequest("PUT", fileName, fileContent);
-            }
-            case "3" -> IHttpClient.sendRequest("DELETE", fileName);
+            case "1" -> controller.executeCommand("get");
+            case "2" -> controller.executeCommand("put");
+            case "3" -> controller.executeCommand("delete");
             default -> throw new IllegalArgumentException("Unknown action");
         }
     }

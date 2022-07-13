@@ -296,6 +296,168 @@ files:
 
 
   learner_created: false
+- name: src/client/CLI.java
+  visible: true
+  text: |
+    package client;
+
+    import client.http.IHttpClient;
+
+    import java.util.Scanner;
+
+    public class CLI {
+        private CLI() {
+        }
+
+        private static final Scanner scanner = new Scanner(System.in);
+
+        static void run() {
+            System.out.print("Enter action (1 - get a file, 2 - create a file, 3 - delete a file): ");
+            String action = scanner.nextLine();
+            if (!isValidAction(action)) {
+                return;
+            }
+            if (action.equals("exit")) {
+                IHttpClient.sendRequest("EXIT");
+                return;
+            }
+
+            System.out.print("Enter file name: ");
+            String fileName = scanner.nextLine();
+
+            switch (action) {
+                case "1" -> IHttpClient.sendRequest("GET", fileName);
+                case "2" -> {
+                    System.out.print("Enter file content: ");
+                    String fileContent = scanner.nextLine();
+
+                    IHttpClient.sendRequest("PUT", fileName, fileContent);
+                }
+                case "3" -> IHttpClient.sendRequest("DELETE", fileName);
+                default -> throw new IllegalArgumentException("Unknown action");
+            }
+        }
+
+
+        private static boolean isValidAction(String action) {
+            return action.equals("1") || action.equals("2") || action.equals("3") || action.equals("exit");
+        }
+    }
+  learner_created: true
+- name: src/client/http/IHttpClient.java
+  visible: true
+  text: |
+    package client.http;
+
+    import server.ServerConfig;
+
+    import java.io.IOException;
+    import java.net.URI;
+    import java.net.http.HttpClient;
+    import java.net.http.HttpRequest;
+    import java.net.http.HttpResponse;
+
+    public class IHttpClient {
+        private IHttpClient() {
+        }
+
+        private static final String PROTOCOL = "http://";
+
+        public static void sendRequest(String... args) {
+            HttpClient httpClient = HttpClient.newHttpClient();
+
+            URI uri = URI.create(PROTOCOL +
+                    ServerConfig.getHostName() + ":" +
+                    ServerConfig.getPort() +
+                    (args.length > 1 ? "?/fileName=" + args[1] : ""));
+
+            HttpRequest request = createHttpRequest(uri, args);
+
+            try {
+                HttpResponse<String> response = httpClient.send(
+                        request, HttpResponse.BodyHandlers.ofString());
+
+                System.out.println("The response says that " + response.body());
+            } catch (IOException | InterruptedException e) {
+                //ignore
+            }
+        }
+
+        private static HttpRequest createHttpRequest(URI uri, String... args) {
+            var requestBuilder = HttpRequest.newBuilder()
+                    .uri(uri);
+            return switch (args[0]) {
+                case "GET" -> requestBuilder.GET()
+                        .build();
+                case "DELETE" -> requestBuilder.DELETE()
+                        .build();
+                case "PUT" -> requestBuilder.PUT(HttpRequest.BodyPublishers.ofString(args[2]))
+                        .header("Content-Type", "plain/text")
+                        .build();
+                case "EXIT" -> requestBuilder
+                        .method("EXIT", HttpRequest.BodyPublishers.noBody())
+                        .build();
+                default -> throw new IllegalArgumentException("Unknown command");
+            };
+        }
+    }
+  learner_created: true
+- name: src/server/http/IHttpServer.java
+  visible: true
+  text: |+
+    package server.http;
+
+    import com.sun.net.httpserver.HttpServer;
+    import server.ServerConfig;
+
+    import java.io.IOException;
+    import java.net.InetSocketAddress;
+    import java.util.concurrent.ExecutorService;
+    import java.util.concurrent.Executors;
+
+    public class IHttpServer {
+        private IHttpServer() {
+        }
+
+        private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
+        private static HttpServer server;
+
+        public static void startHttpServer() {
+            try {
+                server = HttpServer.create(new InetSocketAddress(ServerConfig.getHostName(), ServerConfig.getPort()), 50);
+                server.setExecutor(EXECUTOR);
+                server.createContext("/", new IHttpHandler());
+                server.start();
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+        }
+
+        public static void stopHttpServer() {
+            EXECUTOR.shutdown();
+            server.stop(0);
+        }
+    }
+
+
+  learner_created: true
+- name: src/server/http/IHttpHandler.java
+  visible: true
+  text: |-
+    package server.http;
+
+    import com.sun.net.httpserver.HttpExchange;
+    import com.sun.net.httpserver.HttpHandler;
+
+    public class IHttpHandler implements HttpHandler {
+
+        @Override
+        public void handle(HttpExchange httpExchange) {
+            RequestHandler requestHandler = RequestHandlerBuilder.create(httpExchange);
+            requestHandler.handleRequest(httpExchange);
+        }
+    }
+  learner_created: true
 - name: test/Utils.java
   visible: false
   text: |+
@@ -413,6 +575,426 @@ files:
 
 
   learner_created: false
+- name: src/client/file/ClientFileManager.java
+  visible: true
+  learner_created: true
+- name: src/client/cli/Controller.java
+  visible: true
+  learner_created: true
+- name: src/client/cli/Command.java
+  visible: true
+  learner_created: true
+- name: src/client/cli/PutCommand.java
+  visible: true
+  learner_created: true
+- name: src/client/cli/GetCommand.java
+  visible: true
+  learner_created: true
+- name: src/client/cli/DeleteCommand.java
+  visible: true
+  learner_created: true
+- name: src/server/http/request/DeleteRequestHandler.java
+  visible: true
+  text: |
+    package server.http;
+
+    import com.sun.net.httpserver.HttpExchange;
+
+    public class DeleteRequestHandler extends RequestHandler {
+        @Override
+        public void handleRequest(HttpExchange httpExchange) {
+            super.handleRequest(httpExchange);
+        }
+    }
+  learner_created: true
+- name: src/server/http/request/ExitRequestHandler.java
+  visible: true
+  text: |
+    package server.http;
+
+    import com.sun.net.httpserver.HttpExchange;
+
+    public class ExitRequestHandler extends RequestHandler {
+        @Override
+        public void handleRequest(HttpExchange httpExchange) {
+            IHttpServer.stopHttpServer();
+        }
+    }
+  learner_created: true
+- name: src/server/http/request/GetRequestHandler.java
+  visible: true
+  text: |
+    package server.http;
+
+    import com.sun.net.httpserver.HttpExchange;
+
+
+    public class GetRequestHandler extends RequestHandler {
+        @Override
+        public void handleRequest(HttpExchange httpExchange) {
+            super.handleRequest(httpExchange);
+        }
+    }
+  learner_created: true
+- name: src/server/http/request/PutRequestHandler.java
+  visible: true
+  text: |
+    package server.http;
+
+    import com.sun.net.httpserver.HttpExchange;
+
+    import java.io.IOException;
+
+    public class PutRequestHandler extends RequestHandler {
+        @Override
+        public void handleRequest(HttpExchange httpExchange) {
+            String fileName = httpExchange.
+                    getRequestURI()
+                    .toString()
+                    .split("\\?")[1]
+                    .split("=")[1];
+
+            try {
+                String fileContent = new String(httpExchange.getRequestBody().readAllBytes());
+                ResponseHandler.handleResponse(httpExchange,
+                        fileCommand.executeCommand(fileName, fileContent),
+                        200);
+            } catch (IOException e) {
+                ResponseHandler.handleResponse(httpExchange, "creating the file was forbidden!", 403);
+            }
+        }
+    }
+  learner_created: true
+- name: src/server/http/request/RequestHandler.java
+  visible: true
+  text: |
+    package server.http;
+
+    import com.sun.net.httpserver.HttpExchange;
+    import server.file.commander.FileCommandController;
+
+    import java.nio.file.InvalidPathException;
+    import java.nio.file.Paths;
+
+    public abstract class RequestHandler {
+        FileCommandController fileCommand = new FileCommandController();
+
+        void handleRequest(HttpExchange httpExchange) {
+            String fileName = httpExchange.
+                    getRequestURI()
+                    .toString()
+                    .split("\\?")[1]
+                    .split("=")[1];
+
+            ResponseHandler.handleResponse(httpExchange,
+                    fileCommand.executeCommand(fileName),
+                    200);
+        }
+
+        public void setFileCommand(String fileCommandType) {
+            this.fileCommand.setCommand(fileCommandType);
+        }
+    }
+  learner_created: true
+- name: src/server/http/request/RequestHandlerBuilder.java
+  visible: true
+  text: |
+    package server.http;
+
+    import com.sun.net.httpserver.HttpExchange;
+
+    public class RequestHandlerBuilder {
+        private RequestHandlerBuilder() {
+        }
+
+        public static RequestHandler create(HttpExchange httpExchange) {
+            String requestMethod = httpExchange.getRequestMethod();
+            RequestHandler requestHandler = switch (requestMethod) {
+                case "GET" -> new GetRequestHandler();
+                case "PUT" -> new PutRequestHandler();
+                case "DELETE" -> new DeleteRequestHandler();
+                case "EXIT" -> new ExitRequestHandler();
+                default -> throw new IllegalArgumentException("Can't handle " + requestMethod + " request method");
+            };
+            requestHandler.setFileCommand(requestMethod);
+            return requestHandler;
+        }
+    }
+  learner_created: true
+- name: src/server/http/request/ResponseHandler.java
+  visible: true
+  text: |
+    package server.http;
+
+    import com.sun.net.httpserver.HttpExchange;
+
+    import java.io.IOException;
+    import java.io.OutputStream;
+
+    public class ResponseHandler {
+        private ResponseHandler() {
+        }
+
+        public static void handleResponse(HttpExchange httpExchange, String response, int responseCode) {
+            OutputStream outputStream = httpExchange.getResponseBody();
+            try {
+                httpExchange.sendResponseHeaders(responseCode, response.length());
+                outputStream.write(response.getBytes());
+                outputStream.flush();
+                outputStream.close();
+            } catch (IOException e) {
+                System.out.println("Error while sending response");
+            }
+        }
+    }
+  learner_created: true
+- name: src/file/FileManager.java
+  visible: true
+  text: |
+    package server.file;
+
+    import java.io.File;
+    import java.io.IOException;
+    import java.nio.file.Files;
+    import java.nio.file.Path;
+    import java.nio.file.Paths;
+
+    public class FileManager {
+        private static FileManager instance = new FileManager();
+        private static final String NOT_FOUND = "the file was not found!";
+
+        private FileManager() {
+            Path dataRootPath = Path.of(
+                    System.getProperty("user.dir"),
+                    "src", "server", "data"
+            );
+            if (!isExist("")) {
+                try {
+                    Files.createDirectories(dataRootPath);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+            }
+        }
+
+        public static Path getFilePath(String fileName) {
+            return Path.of(
+                    System.getProperty("user.dir"),
+                    "src", "server", "data", fileName
+            );
+        }
+
+        public static FileManager getInstance() {
+            if (instance == null) {
+                instance = new FileManager();
+            }
+            return instance;
+        }
+
+        private static boolean isWrongFileName(String fileName) {
+            try {
+                Paths.get(fileName);
+                return false;
+            } catch (Exception e) {
+                return true;
+            }
+        }
+
+        public static boolean isExist(String fileName) {
+            if (isWrongFileName(fileName)) {
+                return false;
+            }
+            File file = new File(getFilePath(fileName).toString());
+            return file.exists();
+        }
+
+        public boolean deleteFile(String fileName) {
+            if (isWrongFileName(getFilePath(fileName).toString())) {
+                return false;
+            }
+            File file = new File(getFilePath(fileName).toString());
+            if (file.exists()) {
+                try {
+                    Files.delete(file.toPath());
+                    return true;
+                } catch (Exception x) {
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        public boolean createFile(String fileName) {
+            if (isWrongFileName(fileName)) {
+                return false;
+            }
+            File file = new File(getFilePath(fileName).toString());
+            if (!file.exists()) {
+                try {
+                    if (file.createNewFile()) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    System.out.println("Could not create file " + fileName);
+                }
+            }
+            return false;
+        }
+
+        public String getFileContent(String fileName) {
+            if (isWrongFileName(fileName)) {
+                return NOT_FOUND;
+            }
+            File file = new File(getFilePath(fileName).toString());
+            if (file.exists()) {
+                try {
+                    return new String(Files.readAllBytes(file.toPath()));
+                } catch (Exception e) {
+                    //ignore
+                }
+            }
+            return NOT_FOUND;
+        }
+
+        public void init() {
+            getInstance();
+        }
+    }
+  learner_created: true
+- name: src/server/file/commander/DeleteCommand.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    import server.file.FileManager;
+
+    public class DeleteCommand implements Command {
+        public String execute(String... args) {
+            String fileName = args[0];
+            if (FileManager.getInstance().deleteFile(fileName)) {
+                return "the file was successfully deleted!";
+            } else {
+                return "the file was not found!";
+            }
+        }
+    }
+  learner_created: true
+- name: src/server/file/commander/PutCommand.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    import server.file.FileManager;
+
+    import java.io.FileWriter;
+    import java.io.IOException;
+
+    public class PutCommand implements Command {
+        public String execute(String... args) {
+            String fileName = args[0];
+            if (FileManager.getInstance().createFile(fileName)) {
+                try (FileWriter writer = new FileWriter(FileManager.getFilePath(fileName).toString())) {
+                    writer.write(args[1]);
+                    return "the file was created!";
+                } catch (IOException e) {
+                    //ignored
+                }
+            }
+            return "creating the file was forbidden!";
+        }
+    }
+  learner_created: true
+- name: src/server/file/commander/GetCommand.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    import server.file.FileManager;
+
+    public class GetCommand implements Command {
+        @Override
+        public String execute(String... args) {
+            String fileName = args[0];
+            if (FileManager.isExist(fileName)) {
+                return "The content of the file is: " + FileManager.getInstance().getFileContent(fileName);
+            } else {
+                return "the file was not found!";
+            }
+        }
+    }
+  learner_created: true
+- name: src/server/file/commander/Command.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    public interface Command {
+
+        String execute(String... args);
+    }
+  learner_created: true
+- name: src/server/file/commander/FileCommandController.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    public class FileCommandController {
+        private Command command;
+
+        public void setCommand(String type) {
+            command = switch (type) {
+                case "PUT" -> new PutCommand();
+                case "GET" -> new GetCommand();
+                case "DELETE" -> new DeleteCommand();
+                case "EXIT" -> new ExitCommand();
+                default -> throw new IllegalArgumentException("Unknown command");
+            };
+        }
+
+        public String executeCommand(String... args) {
+            return command.execute(args);
+        }
+    }
+  learner_created: true
+- name: src/server/file/commander/ExitCommand.java
+  visible: true
+  text: |
+    package server.file.commander;
+
+    public class ExitCommand implements Command {
+
+        @Override
+        public String execute(String... args) {
+            return "";
+        }
+    }
+  learner_created: true
+- name: src/server/file/FileIdsData.java
+  visible: true
+  learner_created: true
+- name: src/server/file/ServerFileManager.java
+  visible: true
+  learner_created: true
+- name: src/resources/files_id.json
+  visible: true
+  learner_created: true
+- name: src/client/data/test_purpose_test2.txt
+  visible: true
+  learner_created: true
+- name: src/client/data/test_purpose_test1.txt
+  visible: true
+  learner_created: true
+- name: src/client/data/test_purpose_get.txt
+  visible: true
+  learner_created: true
+- name: src/client/data/test_purpose_get_id.txt
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/learn/step/5428#comment
-status: Unchecked
+status: Solved
+feedback:
+  message: Well done! You've finished the project. Select a new project on <a href="https://hyperskill.org/projects">JetBrains
+    Academy</a> to continue learning.
+  time: Wed, 13 Jul 2022 00:23:03 UTC
 record: -1

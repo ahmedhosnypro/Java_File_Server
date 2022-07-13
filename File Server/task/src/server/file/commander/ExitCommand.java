@@ -1,9 +1,11 @@
 package server.file.commander;
 
-public class ExitCommand implements Command {
+import com.sun.net.httpserver.HttpExchange;
+
+public class ExitCommand extends Command {
 
     @Override
-    public String execute(String... args) {
-        return "";
+    byte[] execute(HttpExchange httpExchange) {
+        return new byte[0];
     }
 }

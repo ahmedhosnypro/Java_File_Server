@@ -1,5 +1,7 @@
 package server.file.commander;
 
+import com.sun.net.httpserver.HttpExchange;
+
 public class FileCommandController {
     private Command command;
 
@@ -13,7 +15,7 @@ public class FileCommandController {
         };
     }
 
-    public String executeCommand(String... args) {
-        return command.execute(args);
+    public byte[] executeCommand(HttpExchange httpExchange) {
+        return command.execute(httpExchange);
     }
 }

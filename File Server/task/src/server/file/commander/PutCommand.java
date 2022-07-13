@@ -1,21 +1,30 @@
 package server.file.commander;
 
-import server.file.FileManager;
+import com.sun.net.httpserver.HttpExchange;
 
-import java.io.FileWriter;
 import java.io.IOException;
 
-public class PutCommand implements Command {
-    public String execute(String... args) {
-        String fileName = args[0];
-        if (FileManager.getInstance().createFile(fileName)) {
-            try (FileWriter writer = new FileWriter(FileManager.getFilePath(fileName).toString())) {
-                writer.write(args[1]);
-                return "the file was created!";
-            } catch (IOException e) {
-                //ignored
+import static server.file.FileIdsData.addNewFileId;
+
+public class PutCommand extends Command {
+    public byte[] execute(HttpExchange httpExchange) {
+        String fileName = httpExchange.
+                getRequestURI()
+                .getQuery()
+                .split("=")[1];
+
+        try {
+            var fileContent = httpExchange.getRequestBody().readAllBytes();
+            if (fileManager.saveFile(fileName, fileContent)) {
+                var fileId = addNewFileId(fileName);
+                if (fileId != null) {
+                    return ("file is saved! ID = " + fileId).getBytes();
+                }
             }
+        } catch (IOException e) {
+            //ignore
         }
-        return "creating the file was forbidden!";
+
+        return null;
     }
 }

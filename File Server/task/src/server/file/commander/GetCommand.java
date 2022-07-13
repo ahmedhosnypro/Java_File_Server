@@ -1,15 +1,20 @@
 package server.file.commander;
 
-import server.file.FileManager;
+import com.sun.net.httpserver.HttpExchange;
 
-public class GetCommand implements Command {
+public class GetCommand extends Command {
+
     @Override
-    public String execute(String... args) {
-        String fileName = args[0];
-        if (FileManager.isExist(fileName)) {
-            return "The content of the file is: " + FileManager.getInstance().getFileContent(fileName);
+    byte[] execute(HttpExchange httpExchange) {
+        String fileName = getFileName(httpExchange);
+        if (fileName == null) {
+            return null;
+        }
+
+        if (fileManager.isExist(fileName)) {
+            return fileManager.getFileContent(fileName);
         } else {
-            return "the file was not found!";
+            return null;
         }
     }
 }
